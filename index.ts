@@ -105,6 +105,106 @@ app.get('/api/jobs', async (req: Request, res: Response) => {
   }
 });
 
+// User Schema mapping to Better Auth's user collection
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true },
+  role: { type: String, default: 'seeker' },
+  avatar: { type: String },
+  image: { type: String },
+  title: { type: String },
+  bio: { type: String },
+  skills: { type: String },
+  resumeUrl: { type: String },
+  companyName: { type: String },
+  companyWebsite: { type: String },
+  createdAt: { type: Date, default: Date.now },
+  status: { type: String, default: 'Active' }
+}, { collection: 'user' });
+
+const User = mongoose.models.User || mongoose.model('User', userSchema);
+
+// Get All Users (Admin API)
+app.get('/api/admin/users', async (req: Request, res: Response) => {
+  try {
+    const users = await User.find({}).sort({ createdAt: -1 });
+    res.status(200).json(users);
+  } catch (error: any) {
+    console.error('Fetch Admin Users Error:', error);
+    res.status(500).json({ message: error.message || 'Server error while fetching users' });
+  }
+});
+
+// Update User Status (Suspend/Activate)
+app.put('/api/admin/users/:id/status', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const updatedUser = await User.findByIdAndUpdate(id, { status }, { new: true });
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.status(200).json(updatedUser);
+  } catch (error: any) {
+    console.error('Update User Status Error:', error);
+    res.status(500).json({ message: error.message || 'Server error while updating user status' });
+  }
+});
+
+// Delete User
+app.delete('/api/admin/users/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const deletedUser = await User.findByIdAndDelete(id);
+    if (!deletedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.status(200).json({ message: 'User deleted successfully' });
+  } catch (error: any) {
+    console.error('Delete User Error:', error);
+    res.status(500).json({ message: error.message || 'Server error while deleting user' });
+  }
+});
+
+// Update Job Status
+app.put('/api/jobs/:id/status', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    let query: any = { _id: id };
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      query = { _id: new mongoose.Types.ObjectId(id) };
+    }
+    const updatedJob = await Job.findOneAndUpdate(query, { status }, { new: true });
+    if (!updatedJob) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+    res.status(200).json(updatedJob);
+  } catch (error: any) {
+    console.error('Update Job Status Error:', error);
+    res.status(500).json({ message: error.message || 'Server error while updating job status' });
+  }
+});
+
+// Delete Job
+app.delete('/api/jobs/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    let query: any = { _id: id };
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      query = { _id: new mongoose.Types.ObjectId(id) };
+    }
+    const deletedJob = await Job.findOneAndDelete(query);
+    if (!deletedJob) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+    res.status(200).json({ message: 'Job deleted successfully' });
+  } catch (error: any) {
+    console.error('Delete Job Error:', error);
+    res.status(500).json({ message: error.message || 'Server error while deleting job' });
+  }
+});
+
 
 // Application Schema
 const applicationSchema = new mongoose.Schema({
