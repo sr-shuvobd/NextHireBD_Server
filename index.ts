@@ -213,6 +213,8 @@ const applicationSchema = new mongoose.Schema({
   companyName: { type: String, required: true },
   seekerId: { type: String, required: true },
   seekerName: { type: String, required: true },
+  seekerEmail: { type: String },
+  seekerPhone: { type: String },
   coverLetter: { type: String },
   resumeUrl: { type: String, required: true },
   status: { type: String, default: 'applied' },
@@ -224,7 +226,7 @@ const Application = mongoose.models.Application || mongoose.model('Application',
 // Apply for a Job Route
 app.post('/api/applications', async (req: Request, res: Response) => {
   try {
-    const { jobId, jobTitle, companyName, seekerId, seekerName, coverLetter, resumeUrl } = req.body;
+    const { jobId, jobTitle, companyName, seekerId, seekerName, seekerEmail, seekerPhone, coverLetter, resumeUrl } = req.body;
     
     if (!jobId || !seekerId) {
       return res.status(400).json({ message: 'Job ID and Seeker ID are required' });
@@ -242,6 +244,8 @@ app.post('/api/applications', async (req: Request, res: Response) => {
       companyName,
       seekerId,
       seekerName,
+      seekerEmail,
+      seekerPhone,
       coverLetter,
       resumeUrl,
       status: 'applied'
@@ -282,6 +286,22 @@ app.get('/api/applications', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Fetch Applications Error:', error);
     res.status(500).json({ message: error.message || 'Server error while fetching applications' });
+  }
+});
+
+// Update Application Status (e.g. recruiter schedules interview)
+app.patch('/api/applications/:id/status', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const updated = await Application.findByIdAndUpdate(id, { status }, { new: true });
+    if (!updated) {
+      return res.status(404).json({ message: 'Application not found' });
+    }
+    res.status(200).json(updated);
+  } catch (error: any) {
+    console.error('Update Application Status Error:', error);
+    res.status(500).json({ message: error.message || 'Server error' });
   }
 });
 
