@@ -73,6 +73,17 @@ app.post('/api/jobs', async (req: Request, res: Response) => {
   }
 });
 
+// Get All Jobs Route
+app.get('/api/jobs', async (req: Request, res: Response) => {
+  try {
+    const jobs = await Job.find().sort({ postedAt: -1 });
+    res.status(200).json(jobs);
+  } catch (error: any) {
+    console.error('Fetch Jobs Error:', error);
+    res.status(500).json({ message: error.message || 'Server error while fetching jobs' });
+  }
+});
+
 
 // Start server
 app.listen(PORT, () => {
