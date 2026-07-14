@@ -48,6 +48,7 @@ const jobSchema = new mongoose.Schema({
   location: { type: String, required: true },
   type: { type: String, required: true },
   companyName: { type: String },
+  companyLogo: { type: String },
   recruiterId: { type: String },
   applications: { type: Number, default: 0 },
   status: { type: String, default: 'Active' },
@@ -76,7 +77,27 @@ app.post('/api/jobs', async (req: Request, res: Response) => {
 // Get All Jobs Route
 app.get('/api/jobs', async (req: Request, res: Response) => {
   try {
-    const jobs = await Job.find().sort({ postedAt: -1 });
+    const { search, location, type } = req.query;
+    let query: any = {};
+
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { companyName: { $regex: search, $options: 'i' } },
+        { skillsRequired: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    if (location) {
+      query.location = { $regex: location, $options: 'i' };
+    }
+
+    if (type) {
+      const types = (type as string).split(',');
+      query.type = { $in: types.map(t => new RegExp(`^${t.trim()}$`, 'i')) };
+    }
+
+    const jobs = await Job.find(query).sort({ postedAt: -1 });
     res.status(200).json(jobs);
   } catch (error: any) {
     console.error('Fetch Jobs Error:', error);
