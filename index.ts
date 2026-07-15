@@ -38,6 +38,31 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Root route for browser testing
+app.get('/', (req: Request, res: Response) => {
+  res.send(`
+    <html>
+      <head>
+        <title>NextHireBD API</title>
+        <style>
+          body { font-family: system-ui, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #0f172a; color: #f8fafc; }
+          .container { text-align: center; padding: 2rem; background: #1e293b; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); }
+          h1 { color: #8b5cf6; margin-bottom: 10px; }
+          p { color: #94a3b8; }
+          .status { display: inline-block; padding: 6px 12px; background: #10b981; color: #022c22; border-radius: 999px; font-weight: bold; font-size: 0.875rem; margin-top: 15px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>🚀 NextHireBD Server</h1>
+          <p>The backend API server is running successfully!</p>
+          <div class="status">● Server Online</div>
+        </div>
+      </body>
+    </html>
+  `);
+});
+
 // Basic health check route
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'OK', message: 'NextHireBD Server is running smoothly' });
