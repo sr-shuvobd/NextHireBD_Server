@@ -1,4 +1,5 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
@@ -42,6 +43,37 @@ app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'OK', message: 'NextHireBD Server is running smoothly' });
 });
 
+// JWT Middleware
+const authenticateJWT = (req: Request, res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader) {
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.JWT_SECRET || 'supersecretkey12345', (err: any, user: any) => {
+      if (err) {
+        return res.status(403).json({ message: 'Invalid or expired token' });
+      }
+      (req as any).user = user;
+      next();
+    });
+  } else {
+    res.status(401).json({ message: 'Authorization header missing' });
+  }
+};
+
+// Generate JWT Token (Frontend can call this after Better Auth login)
+app.post('/api/auth/token', async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ message: 'userId is required' });
+    }
+    const token = jwt.sign({ id: userId }, process.env.JWT_SECRET || 'supersecretkey12345', { expiresIn: '7d' });
+    res.json({ token });
+  } catch (error) {
+    res.status(500).json({ message: 'Error generating token' });
+  }
+});
+
 // Job Schema
 const jobSchema = new mongoose.Schema({
   title: { type: String, required: true },
@@ -63,7 +95,7 @@ const jobSchema = new mongoose.Schema({
 const Job = mongoose.models.Job || mongoose.model('Job', jobSchema);
 
 // Post Job Route
-app.post('/api/jobs', async (req: Request, res: Response) => {
+app.post('/api/jobs', authenticateJWT, async (req: Request, res: Response) => {
   try {
     const newJob = new Job(req.body);
     const savedJob = await newJob.save();
@@ -136,7 +168,7 @@ app.get('/api/admin/users', async (req: Request, res: Response) => {
 });
 
 // Update User Status (Suspend/Activate)
-app.put('/api/admin/users/:id/status', async (req: Request, res: Response) => {
+app.put('/api/admin/users/:id/status', authenticateJWT, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
@@ -152,7 +184,7 @@ app.put('/api/admin/users/:id/status', async (req: Request, res: Response) => {
 });
 
 // Delete User
-app.delete('/api/admin/users/:id', async (req: Request, res: Response) => {
+app.delete('/api/admin/users/:id', authenticateJWT, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const deletedUser = await User.findByIdAndDelete(id);
@@ -167,7 +199,7 @@ app.delete('/api/admin/users/:id', async (req: Request, res: Response) => {
 });
 
 // Update Job Status
-app.put('/api/jobs/:id/status', async (req: Request, res: Response) => {
+app.put('/api/jobs/:id/status', authenticateJWT, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
@@ -187,7 +219,7 @@ app.put('/api/jobs/:id/status', async (req: Request, res: Response) => {
 });
 
 // Delete Job
-app.delete('/api/jobs/:id', async (req: Request, res: Response) => {
+app.delete('/api/jobs/:id', authenticateJWT, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     let query: any = { _id: id };
@@ -224,7 +256,7 @@ const applicationSchema = new mongoose.Schema({
 const Application = mongoose.models.Application || mongoose.model('Application', applicationSchema);
 
 // Apply for a Job Route
-app.post('/api/applications', async (req: Request, res: Response) => {
+app.post('/api/applications', authenticateJWT, async (req: Request, res: Response) => {
   try {
     const { jobId, jobTitle, companyName, seekerId, seekerName, seekerEmail, seekerPhone, coverLetter, resumeUrl } = req.body;
 
@@ -304,8 +336,8 @@ const updateAppStatus = async (req: Request, res: Response) => {
     res.status(500).json({ message: error.message || 'Server error' });
   }
 };
-app.patch('/api/applications/:id/status', updateAppStatus);
-app.put('/api/applications/:id/status', updateAppStatus);
+app.patch('/api/applications/:id/status', authenticateJWT, updateAppStatus);
+app.put('/api/applications/:id/status', authenticateJWT, updateAppStatus);
 
 // Start server
 app.listen(PORT, () => {
