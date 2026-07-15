@@ -339,7 +339,11 @@ const updateAppStatus = async (req: Request, res: Response) => {
 app.patch('/api/applications/:id/status', authenticateJWT, updateAppStatus);
 app.put('/api/applications/:id/status', authenticateJWT, updateAppStatus);
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`[server]: Server is running at http://localhost:${PORT}`);
-});
+// Start server (only if not in Vercel production)
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`[server]: Server is running at http://localhost:${PORT}`);
+  });
+}
+
+export default app;
