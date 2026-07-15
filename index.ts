@@ -227,7 +227,7 @@ const Application = mongoose.models.Application || mongoose.model('Application',
 app.post('/api/applications', async (req: Request, res: Response) => {
   try {
     const { jobId, jobTitle, companyName, seekerId, seekerName, seekerEmail, seekerPhone, coverLetter, resumeUrl } = req.body;
-    
+
     if (!jobId || !seekerId) {
       return res.status(400).json({ message: 'Job ID and Seeker ID are required' });
     }
@@ -259,7 +259,7 @@ app.post('/api/applications', async (req: Request, res: Response) => {
       if (mongoose.Types.ObjectId.isValid(jobId)) {
         jobQuery = { _id: new mongoose.Types.ObjectId(jobId) };
       }
-    } catch (e) {}
+    } catch (e) { }
 
     await Job.findOneAndUpdate(
       jobQuery,
@@ -289,8 +289,8 @@ app.get('/api/applications', async (req: Request, res: Response) => {
   }
 });
 
-// Update Application Status (e.g. recruiter schedules interview)
-app.patch('/api/applications/:id/status', async (req: Request, res: Response) => {
+// Update Application Status - supports both PUT and PATCH
+const updateAppStatus = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
@@ -303,7 +303,9 @@ app.patch('/api/applications/:id/status', async (req: Request, res: Response) =>
     console.error('Update Application Status Error:', error);
     res.status(500).json({ message: error.message || 'Server error' });
   }
-});
+};
+app.patch('/api/applications/:id/status', updateAppStatus);
+app.put('/api/applications/:id/status', updateAppStatus);
 
 // Start server
 app.listen(PORT, () => {
